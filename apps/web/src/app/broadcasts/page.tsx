@@ -133,6 +133,7 @@ export default function BroadcastsPage() {
           tags={tags}
           onSuccess={() => { setShowCreate(false); load() }}
           onCancel={() => setShowCreate(false)}
+          lineAccountId={selectedAccountId}
         />
       )}
 

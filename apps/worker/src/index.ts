@@ -37,6 +37,9 @@ import { forms } from './routes/forms.js';
 import { adPlatforms } from './routes/ad-platforms.js';
 import { staff } from './routes/staff.js';
 import { images } from './routes/images.js';
+import { autoReplies } from './routes/auto-replies.js';
+import { aiReply } from './routes/ai-reply.js';
+import { processAiReplyQueue } from './services/ai-reply.js';
 
 export type Env = {
   Bindings: {
@@ -50,6 +53,7 @@ export type Env = {
     LINE_LOGIN_CHANNEL_ID: string;
     LINE_LOGIN_CHANNEL_SECRET: string;
     WORKER_URL: string;
+    ANTHROPIC_API_KEY?: string;
     X_HARNESS_URL?: string;  // Optional: X Harness API URL for account linking
   };
   Variables: {
@@ -98,6 +102,8 @@ app.route('/', forms);
 app.route('/', adPlatforms);
 app.route('/', staff);
 app.route('/', images);
+app.route('/', autoReplies);
+app.route('/', aiReply);
 
 // Short link: /r/:ref → landing page with LINE open button
 app.get('/r/:ref', (c) => {
@@ -176,6 +182,7 @@ async function scheduled(
       processStepDeliveries(env.DB, lineClient, env.WORKER_URL),
       processScheduledBroadcasts(env.DB, lineClient, env.WORKER_URL),
       processReminderDeliveries(env.DB, lineClient),
+      processAiReplyQueue(env.DB, lineClient, token),
     );
   }
   jobs.push(checkAccountHealth(env.DB));

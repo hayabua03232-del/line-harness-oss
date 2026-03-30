@@ -30,6 +30,33 @@ import type { Broadcast } from '@line-crm/shared'
 /** Broadcast type from API (now camelCase after worker serialization) */
 export type ApiBroadcast = Broadcast
 
+export type AiReplyConfig = {
+  id: string
+  lineAccountId: string | null
+  isEnabled: boolean
+  aiModel: string
+  systemPrompt: string
+  delayMinMinutes: number
+  delayMaxMinutes: number
+  maxContextMessages: number
+  maxTokens: number
+  createdAt: string
+  updatedAt: string
+}
+
+export type AiReplyQueueEntry = {
+  id: string
+  friendId: string
+  lineAccountId: string | null
+  incomingMessage: string
+  aiResponse: string
+  status: string
+  scheduledSendAt: string
+  sentAt: string | null
+  errorMessage: string | null
+  createdAt: string
+}
+
 const API_URL = process.env.NEXT_PUBLIC_API_URL
 if (!API_URL) {
   throw new Error(
@@ -163,6 +190,7 @@ export const api = {
       targetTagId?: string | null
       scheduledAt?: string | null
       status?: ApiBroadcast['status']
+      lineAccountId?: string | null
     }) =>
       fetchApi<ApiResponse<ApiBroadcast>>('/api/broadcasts', {
         method: 'POST',
@@ -507,5 +535,39 @@ export const api = {
       fetchApi<ApiResponse<null>>(`/api/staff/${id}`, { method: 'DELETE' }),
     regenerateKey: (id: string) =>
       fetchApi<ApiResponse<{ apiKey: string }>>(`/api/staff/${id}/regenerate-key`, { method: 'POST' }),
+  },
+  aiReply: {
+    getConfig: (lineAccountId?: string) => {
+      const query = lineAccountId ? '?lineAccountId=' + lineAccountId : ''
+      return fetchApi<ApiResponse<AiReplyConfig | null>>('/api/ai-reply/config' + query)
+    },
+    updateConfig: (data: {
+      lineAccountId?: string | null
+      isEnabled?: boolean
+      aiModel?: string
+      systemPrompt?: string
+      delayMinMinutes?: number
+      delayMaxMinutes?: number
+      maxContextMessages?: number
+      maxTokens?: number
+    }) =>
+      fetchApi<ApiResponse<AiReplyConfig>>('/api/ai-reply/config', {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    getQueue: (params?: { lineAccountId?: string; status?: string; limit?: number }) => {
+      const query = new URLSearchParams()
+      if (params?.lineAccountId) query.set('lineAccountId', params.lineAccountId)
+      if (params?.status) query.set('status', params.status)
+      if (params?.limit) query.set('limit', String(params.limit))
+      return fetchApi<ApiResponse<AiReplyQueueEntry[]>>('/api/ai-reply/queue?' + query)
+    },
+    cancelQueue: (id: string) =>
+      fetchApi<ApiResponse<null>>(`/api/ai-reply/queue/${id}`, { method: 'DELETE' }),
+    test: (data: { message: string; friendId?: string; lineAccountId?: string | null }) =>
+      fetchApi<ApiResponse<{ response: string; model: string; contextMessages: number }>>('/api/ai-reply/test', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
   },
 }

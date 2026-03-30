@@ -4,6 +4,7 @@ import {
   getBroadcasts,
   updateBroadcastStatus,
   getFriendsByTag,
+  getLineAccountById,
   jstNow,
 } from '@line-crm/db';
 import type { Broadcast } from '@line-crm/db';
@@ -38,22 +39,42 @@ export async function processBroadcastSend(
   }
   const altText = (broadcast as unknown as Record<string, unknown>).alt_text as string | undefined;
   const message = buildMessage(finalType, finalContent, altText || undefined);
+  const lineAccountId = (broadcast as unknown as Record<string, unknown>).line_account_id as string | null;
   let totalCount = 0;
   let successCount = 0;
 
   try {
     if (broadcast.target_type === 'all') {
-      // Use LINE broadcast API (sends to all followers)
-      await lineClient.broadcast([message]);
-      // We don't have exact count for broadcast API, set as 0 (unknown)
-      totalCount = 0;
-      successCount = 0;
+      // Get all following friends for this account
+      const allFriendsResult = await db
+        .prepare(
+          lineAccountId
+            ? `SELECT * FROM friends WHERE is_following = 1 AND line_account_id = ?`
+            : `SELECT * FROM friends WHERE is_following = 1`,
+        )
+        .bind(...(lineAccountId ? [lineAccountId] : []))
+        .all<{ id: string; line_user_id: string }>();
+      const allFriends = allFriendsResult.results;
+      totalCount = allFriends.length;
+
+      if (allFriends.length <= MULTICAST_BATCH_SIZE) {
+        // Use multicast for small audiences (gives us exact count)
+        const lineUserIds = allFriends.map((f) => f.line_user_id);
+        if (lineUserIds.length > 0) {
+          await lineClient.multicast(lineUserIds, [message]);
+          successCount = lineUserIds.length;
+        }
+      } else {
+        // Use LINE broadcast API for large audiences
+        await lineClient.broadcast([message]);
+        successCount = totalCount;
+      }
     } else if (broadcast.target_type === 'tag') {
       if (!broadcast.target_tag_id) {
         throw new Error('target_tag_id is required for tag-targeted broadcasts');
       }
 
-      const friends = await getFriendsByTag(db, broadcast.target_tag_id);
+      const friends = await getFriendsByTag(db, broadcast.target_tag_id, lineAccountId || undefined);
       const followingFriends = friends.filter((f) => f.is_following);
       totalCount = followingFriends.length;
 
@@ -111,10 +132,9 @@ export async function processBroadcastSend(
 
 export async function processScheduledBroadcasts(
   db: D1Database,
-  lineClient: LineClient,
+  fallbackLineClient: LineClient,
   workerUrl?: string,
 ): Promise<void> {
-  const now = jstNow();
   const allBroadcasts = await getBroadcasts(db);
 
   const nowMs = Date.now();
@@ -127,7 +147,16 @@ export async function processScheduledBroadcasts(
 
   for (const broadcast of scheduled) {
     try {
-      await processBroadcastSend(db, lineClient, broadcast.id, workerUrl);
+      // Use the correct LINE account token for each broadcast
+      const lineAccountId = (broadcast as unknown as Record<string, unknown>).line_account_id as string | null;
+      let client = fallbackLineClient;
+      if (lineAccountId) {
+        const account = await getLineAccountById(db, lineAccountId);
+        if (account) {
+          client = new LineClient(account.channel_access_token);
+        }
+      }
+      await processBroadcastSend(db, client, broadcast.id, workerUrl);
     } catch (err) {
       console.error(`Failed to send scheduled broadcast ${broadcast.id}:`, err);
       // Continue with next broadcast

@@ -7,6 +7,7 @@ account_id = "36f6d38a2e47042e9faf67c027927ddc"
 # Static assets (LIFF pages) served by Workers Assets
 # SPA fallback ensures all non-API paths serve index.html
 [assets]
+directory = "dist/client"
 not_found_handling = "single-page-application"
 
 [[d1_databases]]

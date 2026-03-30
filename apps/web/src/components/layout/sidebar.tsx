@@ -50,6 +50,8 @@ const menuSections = [
       { href: '/accounts', label: 'LINEアカウント', icon: 'M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4' },
       { href: '/users', label: 'UUID管理', icon: 'M10 6H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0a2 2 0 104 0m-5 8a2 2 0 100-4 2 2 0 000 4zm0 0c1.306 0 2.417.835 2.83 2M9 14a3.001 3.001 0 00-2.83 2M15 11h3m-3 4h2' },
       { href: '/health', label: 'BAN検知', icon: 'M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z' },
+      { href: '/ai-reply', label: 'AI自動返信', icon: 'M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z' },
+      { href: '/manual', label: '操作マニュアル', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
       { href: '/emergency', label: '緊急コントロール', icon: 'M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L4.072 16.5c-.77.833.192 2.5 1.732 2.5z', danger: true },
     ],
   },
@@ -189,7 +191,7 @@ export default function Sidebar() {
             H
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-900 leading-tight">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE Harness'}</p>
+            <p className="text-sm font-bold text-gray-900 leading-tight">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE配信管理'}</p>
             <p className="text-xs text-gray-400">管理画面</p>
           </div>
         </div>
@@ -251,7 +253,7 @@ export default function Sidebar() {
           </div>
         )}
         <div className="px-6 py-4 space-y-3">
-        <p className="text-xs text-gray-400">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE Harness'} v{process.env.APP_VERSION || '0.0.0'}</p>
+        <p className="text-xs text-gray-400">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE配信管理'} v{process.env.APP_VERSION || '0.0.0'}</p>
         <button
           onClick={() => {
             localStorage.removeItem('lh_api_key')
@@ -289,7 +291,7 @@ export default function Sidebar() {
         </button>
         <div className="flex items-center gap-2">
           <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white font-bold text-xs" style={{ backgroundColor: '#06C755' }}>H</div>
-          <p className="text-sm font-bold text-gray-900">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE Harness'}</p>
+          <p className="text-sm font-bold text-gray-900">{process.env.NEXT_PUBLIC_BRAND_NAME || 'LINE配信管理'}</p>
         </div>
       </div>
 
