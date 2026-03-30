@@ -13,7 +13,9 @@ interface StepEditorProps {
 const messageTypeLabels: Record<MessageType, string> = {
   text: 'テキスト',
   image: '画像',
+  image_link: '画像+リンク',
   flex: 'Flexメッセージ',
+  multi: '複数吹き出し',
 }
 
 function minutesToDisplay(minutes: number): { days: number; hours: number; mins: number } {

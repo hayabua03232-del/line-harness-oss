@@ -5,6 +5,11 @@ import { api } from '@/lib/api'
 import { useAccount } from '@/contexts/account-context'
 import Header from '@/components/layout/header'
 import CcPromptButton from '@/components/cc-prompt-button'
+import MultiMessageEditor, {
+  type MessageItem,
+  parseMessages,
+  serializeMessages,
+} from '@/components/multi-message-editor'
 
 interface Reminder {
   id: string
@@ -35,8 +40,7 @@ interface CreateFormState {
 
 interface StepFormState {
   offsetMinutes: number
-  messageType: string
-  messageContent: string
+  messages: MessageItem[]
 }
 
 function formatOffset(minutes: number): string {
@@ -61,7 +65,9 @@ function formatOffset(minutes: number): string {
 const messageTypeLabels: Record<string, string> = {
   text: 'テキスト',
   image: '画像',
+  image_link: '画像+リンク',
   flex: 'Flex',
+  multi: '複数吹き出し',
 }
 
 const ccPrompts = [
@@ -102,8 +108,7 @@ export default function RemindersPage() {
   const [showStepForm, setShowStepForm] = useState(false)
   const [stepForm, setStepForm] = useState<StepFormState>({
     offsetMinutes: -60,
-    messageType: 'text',
-    messageContent: '',
+    messages: [{ type: 'text', content: '' }],
   })
   const [stepSaving, setStepSaving] = useState(false)
   const [stepFormError, setStepFormError] = useState('')
@@ -214,21 +219,23 @@ export default function RemindersPage() {
 
   const handleAddStep = async () => {
     if (!expandedId) return
-    if (!stepForm.messageContent.trim()) {
+    const hasContent = stepForm.messages.some((m) => m.content.trim())
+    if (!hasContent) {
       setStepFormError('メッセージ内容を入力してください')
       return
     }
     setStepSaving(true)
     setStepFormError('')
     try {
+      const { messageType, messageContent } = serializeMessages(stepForm.messages)
       const res = await api.reminders.addStep(expandedId, {
         offsetMinutes: stepForm.offsetMinutes,
-        messageType: stepForm.messageType,
-        messageContent: stepForm.messageContent,
+        messageType,
+        messageContent,
       })
       if (res.success) {
         setShowStepForm(false)
-        setStepForm({ offsetMinutes: -60, messageType: 'text', messageContent: '' })
+        setStepForm({ offsetMinutes: -60, messages: [{ type: 'text', content: '' }] })
         loadDetail(expandedId)
       } else {
         setStepFormError(res.error)
@@ -445,9 +452,20 @@ export default function RemindersPage() {
                                         {messageTypeLabels[step.messageType] ?? step.messageType}
                                       </span>
                                     </div>
-                                    <p className="text-xs text-gray-600 whitespace-pre-wrap break-words line-clamp-3">
-                                      {step.messageContent}
-                                    </p>
+                                    {step.messageType === 'multi' ? (
+                                      <div className="space-y-1">
+                                        {parseMessages(step.messageType, step.messageContent).map((m, mi) => (
+                                          <p key={mi} className="text-xs text-gray-600 whitespace-pre-wrap break-words line-clamp-2">
+                                            <span className="text-gray-400">[{messageTypeLabels[m.type] ?? m.type}]</span>{' '}
+                                            {m.type === 'text' ? m.content : m.content.slice(0, 50)}
+                                          </p>
+                                        ))}
+                                      </div>
+                                    ) : (
+                                      <p className="text-xs text-gray-600 whitespace-pre-wrap break-words line-clamp-3">
+                                        {step.messageContent}
+                                      </p>
+                                    )}
                                   </div>
                                   <button
                                     onClick={() => handleDeleteStep(step.id)}
@@ -479,25 +497,10 @@ export default function RemindersPage() {
                                 </p>
                               </div>
                               <div>
-                                <label className="block text-xs font-medium text-gray-600 mb-1">メッセージタイプ</label>
-                                <select
-                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                                  value={stepForm.messageType}
-                                  onChange={(e) => setStepForm({ ...stepForm, messageType: e.target.value })}
-                                >
-                                  <option value="text">テキスト</option>
-                                  <option value="image">画像</option>
-                                  <option value="flex">Flex</option>
-                                </select>
-                              </div>
-                              <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">メッセージ内容 <span className="text-red-500">*</span></label>
-                                <textarea
-                                  className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                                  rows={3}
-                                  placeholder="メッセージ内容を入力"
-                                  value={stepForm.messageContent}
-                                  onChange={(e) => setStepForm({ ...stepForm, messageContent: e.target.value })}
+                                <MultiMessageEditor
+                                  messages={stepForm.messages}
+                                  onChange={(messages) => setStepForm({ ...stepForm, messages })}
                                 />
                               </div>
 

@@ -1,4 +1,4 @@
-import { extractFlexAltText } from '../utils/flex-alt-text.js';
+import { buildMessages } from '../utils/build-messages.js';
 
 /**
  * イベントバス — システム内イベントの発火と処理
@@ -24,7 +24,6 @@ import {
   getFriendScore,
 } from '@line-crm/db';
 import { LineClient } from '@line-crm/line-sdk';
-import type { Message } from '@line-crm/line-sdk';
 import { sendAdConversions } from './ad-conversion.js';
 
 export interface EventPayload {
@@ -254,32 +253,24 @@ async function executeAction(
       if (!friend) break;
       const lineClient = new LineClient(lineAccessToken);
       const msgType = action.params.messageType || 'text';
-      let msg: Message;
-      if (msgType === 'flex') {
-        const contents = JSON.parse(action.params.content);
-        msg = { type: 'flex', altText: action.params.altText || extractFlexAltText(contents), contents };
-      } else {
-        msg = { type: 'text', text: action.params.content };
-      }
+      const msgs = buildMessages(msgType, action.params.content, action.params.altText);
       // Prefer replyMessage (free) when replyToken is available
       if (payload.replyToken) {
         try {
-          await lineClient.replyMessage(payload.replyToken, [msg]);
+          await lineClient.replyMessage(payload.replyToken, msgs);
           // replyToken is single-use, clear it so subsequent actions fall back to push
           payload.replyToken = undefined;
         } catch (err: unknown) {
-          // Token-consumed/expired errors contain "400" or "Invalid reply token" in the message.
-          // Fall back to push only for those; re-throw other errors (5xx, validation).
           const errMsg = err instanceof Error ? err.message : String(err);
           const isTokenError = errMsg.includes('400') || errMsg.includes('Invalid reply token');
           if (isTokenError) {
-            await lineClient.pushMessage(friend.line_user_id, [msg]);
+            await lineClient.pushMessage(friend.line_user_id, msgs);
           } else {
             throw err;
           }
         }
       } else {
-        await lineClient.pushMessage(friend.line_user_id, [msg]);
+        await lineClient.pushMessage(friend.line_user_id, msgs);
       }
       break;
     }

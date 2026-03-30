@@ -4,6 +4,11 @@ import { useState, useEffect, useCallback } from 'react'
 import { api } from '@/lib/api'
 import Header from '@/components/layout/header'
 import CcPromptButton from '@/components/cc-prompt-button'
+import MultiMessageEditor, {
+  type MessageItem,
+  parseMessages,
+  serializeMessages,
+} from '@/components/multi-message-editor'
 
 interface Template {
   id: string
@@ -18,14 +23,15 @@ interface Template {
 const messageTypeLabels: Record<string, string> = {
   text: 'テキスト',
   image: '画像',
+  image_link: '画像+リンク',
   flex: 'Flex',
+  multi: '複数吹き出し',
 }
 
 interface CreateFormState {
   name: string
   category: string
-  messageType: string
-  messageContent: string
+  messages: MessageItem[]
 }
 
 function formatDate(iso: string): string {
@@ -66,8 +72,7 @@ export default function TemplatesPage() {
   const [form, setForm] = useState<CreateFormState>({
     name: '',
     category: '',
-    messageType: 'text',
-    messageContent: '',
+    messages: [{ type: 'text', content: '' }],
   })
   const [saving, setSaving] = useState(false)
   const [formError, setFormError] = useState('')
@@ -77,8 +82,7 @@ export default function TemplatesPage() {
   const [editForm, setEditForm] = useState<CreateFormState>({
     name: '',
     category: '',
-    messageType: 'text',
-    messageContent: '',
+    messages: [{ type: 'text', content: '' }],
   })
   const [editSaving, setEditSaving] = useState(false)
   const [editFormError, setEditFormError] = useState('')
@@ -119,22 +123,24 @@ export default function TemplatesPage() {
       setFormError('カテゴリを入力してください')
       return
     }
-    if (!form.messageContent.trim()) {
+    const hasContent = form.messages.some((m) => m.content.trim())
+    if (!hasContent) {
       setFormError('メッセージ内容を入力してください')
       return
     }
     setSaving(true)
     setFormError('')
     try {
+      const { messageType, messageContent } = serializeMessages(form.messages)
       const res = await api.templates.create({
         name: form.name,
         category: form.category,
-        messageType: form.messageType,
-        messageContent: form.messageContent,
+        messageType,
+        messageContent,
       })
       if (res.success) {
         setShowCreate(false)
-        setForm({ name: '', category: '', messageType: 'text', messageContent: '' })
+        setForm({ name: '', category: '', messages: [{ type: 'text', content: '' }] })
         load()
       } else {
         setFormError(res.error)
@@ -151,8 +157,7 @@ export default function TemplatesPage() {
     setEditForm({
       name: template.name,
       category: template.category,
-      messageType: template.messageType,
-      messageContent: template.messageContent,
+      messages: parseMessages(template.messageType, template.messageContent),
     })
     setEditFormError('')
   }
@@ -167,18 +172,20 @@ export default function TemplatesPage() {
       setEditFormError('カテゴリを入力してください')
       return
     }
-    if (!editForm.messageContent.trim()) {
+    const hasContent = editForm.messages.some((m) => m.content.trim())
+    if (!hasContent) {
       setEditFormError('メッセージ内容を入力してください')
       return
     }
     setEditSaving(true)
     setEditFormError('')
     try {
+      const { messageType, messageContent } = serializeMessages(editForm.messages)
       const res = await api.templates.update(editingId, {
         name: editForm.name,
         category: editForm.category,
-        messageType: editForm.messageType,
-        messageContent: editForm.messageContent,
+        messageType,
+        messageContent,
       })
       if (res.success) {
         setEditingId(null)
@@ -282,25 +289,10 @@ export default function TemplatesPage() {
               />
             </div>
             <div>
-              <label className="block text-xs font-medium text-gray-600 mb-1">メッセージタイプ</label>
-              <select
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                value={form.messageType}
-                onChange={(e) => setForm({ ...form, messageType: e.target.value })}
-              >
-                <option value="text">テキスト</option>
-                <option value="image">画像</option>
-                <option value="flex">Flex</option>
-              </select>
-            </div>
-            <div>
               <label className="block text-xs font-medium text-gray-600 mb-1">メッセージ内容 <span className="text-red-500">*</span></label>
-              <textarea
-                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                rows={4}
-                placeholder="メッセージ内容を入力してください"
-                value={form.messageContent}
-                onChange={(e) => setForm({ ...form, messageContent: e.target.value })}
+              <MultiMessageEditor
+                messages={form.messages}
+                onChange={(messages) => setForm({ ...form, messages })}
               />
             </div>
 
@@ -390,24 +382,10 @@ export default function TemplatesPage() {
                           />
                         </div>
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">メッセージタイプ</label>
-                          <select
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 bg-white"
-                            value={editForm.messageType}
-                            onChange={(e) => setEditForm({ ...editForm, messageType: e.target.value })}
-                          >
-                            <option value="text">テキスト</option>
-                            <option value="image">画像</option>
-                            <option value="flex">Flex</option>
-                          </select>
-                        </div>
-                        <div>
                           <label className="block text-xs font-medium text-gray-600 mb-1">メッセージ内容</label>
-                          <textarea
-                            className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 resize-none"
-                            rows={4}
-                            value={editForm.messageContent}
-                            onChange={(e) => setEditForm({ ...editForm, messageContent: e.target.value })}
+                          <MultiMessageEditor
+                            messages={editForm.messages}
+                            onChange={(messages) => setEditForm({ ...editForm, messages })}
                           />
                         </div>
                         {editFormError && <p className="text-xs text-red-600">{editFormError}</p>}
