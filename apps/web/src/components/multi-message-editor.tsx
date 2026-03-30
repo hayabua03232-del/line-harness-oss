@@ -1,7 +1,9 @@
 'use client'
 
+import { useState } from 'react'
 import FlexPreviewComponent from './flex-preview'
 import CarouselBuilder from './carousel/carousel-builder'
+import FlexTemplateGallery from './flex-editor/flex-template-gallery'
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -160,6 +162,58 @@ function ImageFields({
   )
 }
 
+// ─── Flex editor with template gallery ──────────────────────────────────────────
+
+function FlexEditor({ content, onChange }: { content: string; onChange: (c: string) => void }) {
+  const [showGallery, setShowGallery] = useState(false)
+
+  if (showGallery) {
+    return (
+      <FlexTemplateGallery
+        onSelect={(json) => {
+          onChange(json)
+          setShowGallery(false)
+        }}
+        onClose={() => setShowGallery(false)}
+      />
+    )
+  }
+
+  return (
+    <div className="space-y-2">
+      <div className="flex justify-end">
+        <button
+          type="button"
+          onClick={() => setShowGallery(true)}
+          className="text-xs text-green-600 hover:text-green-700 px-2 py-1 rounded hover:bg-green-50 transition-colors"
+        >
+          テンプレートから作成
+        </button>
+      </div>
+      <textarea
+        className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
+        rows={6}
+        placeholder="Flex Message JSON"
+        value={content}
+        onChange={(e) => onChange(e.target.value)}
+      />
+      {(() => {
+        try {
+          JSON.parse(content)
+          return (
+            <div className="border border-gray-200 rounded p-2 bg-white">
+              <p className="text-xs text-gray-400 mb-1">プレビュー</p>
+              <FlexPreviewComponent content={content} />
+            </div>
+          )
+        } catch {
+          return null
+        }
+      })()}
+    </div>
+  )
+}
+
 // ─── Single message item editor ────────────────────────────────────────────────
 
 function MessageItemEditor({
@@ -262,29 +316,10 @@ function MessageItemEditor({
       )}
 
       {item.type === 'flex' && (
-        <div className="space-y-2">
-          <textarea
-            className="w-full border border-gray-300 rounded px-2 py-1.5 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-green-500 resize-y"
-            rows={6}
-            placeholder="Flex Message JSON"
-            value={item.content}
-            onChange={(e) => onChange({ ...item, content: e.target.value })}
-          />
-          {/* Flex preview */}
-          {(() => {
-            try {
-              JSON.parse(item.content)
-              return (
-                <div className="border border-gray-200 rounded p-2 bg-white">
-                  <p className="text-xs text-gray-400 mb-1">プレビュー</p>
-                  <FlexPreviewComponent content={item.content} />
-                </div>
-              )
-            } catch {
-              return null
-            }
-          })()}
-        </div>
+        <FlexEditor
+          content={item.content}
+          onChange={(c) => onChange({ ...item, content: c })}
+        />
       )}
 
       {item.type === 'carousel' && (

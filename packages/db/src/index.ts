@@ -25,6 +25,9 @@ export * from './staff';
 export * from './ai-reply';
 export * from './segments';
 export * from './rich-menus';
+export * from './funnels';
+export * from './coupons';
+export * from './surveys';
 
 /**
  * Thin wrapper around D1Database.

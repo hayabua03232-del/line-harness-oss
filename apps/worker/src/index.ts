@@ -40,6 +40,9 @@ import { images } from './routes/images.js';
 import { autoReplies } from './routes/auto-replies.js';
 import { aiReply } from './routes/ai-reply.js';
 import { segments } from './routes/segments.js';
+import { funnels } from './routes/funnels.js';
+import { coupons } from './routes/coupons.js';
+import { surveys } from './routes/surveys.js';
 import { processAiReplyQueue } from './services/ai-reply.js';
 
 export type Env = {
@@ -106,6 +109,9 @@ app.route('/', images);
 app.route('/', autoReplies);
 app.route('/', aiReply);
 app.route('/', segments);
+app.route('/', funnels);
+app.route('/', coupons);
+app.route('/', surveys);
 
 // Short link: /r/:ref → landing page with LINE open button
 app.get('/r/:ref', (c) => {
