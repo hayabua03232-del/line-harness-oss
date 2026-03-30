@@ -35,6 +35,7 @@ function serializeBroadcast(row: DbBroadcast) {
     messageContent: row.message_content,
     targetType: row.target_type,
     targetTagId: row.target_tag_id,
+    targetSegmentId: row.target_segment_id,
     status: row.status,
     scheduledAt: row.scheduled_at,
     sentAt: row.sent_at,
@@ -91,6 +92,7 @@ broadcasts.post('/api/broadcasts', async (c) => {
       messageContent: string;
       targetType: BroadcastTargetType;
       targetTagId?: string | null;
+      targetSegmentId?: string | null;
       scheduledAt?: string | null;
       lineAccountId?: string | null;
       altText?: string | null;
@@ -116,6 +118,7 @@ broadcasts.post('/api/broadcasts', async (c) => {
       messageContent: body.messageContent,
       targetType: body.targetType,
       targetTagId: body.targetTagId ?? null,
+      targetSegmentId: body.targetSegmentId ?? null,
       scheduledAt: body.scheduledAt ?? null,
     });
 

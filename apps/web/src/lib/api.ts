@@ -188,6 +188,7 @@ export const api = {
       messageContent: string
       targetType: ApiBroadcast['targetType']
       targetTagId?: string | null
+      targetSegmentId?: string | null
       scheduledAt?: string | null
       status?: ApiBroadcast['status']
       lineAccountId?: string | null
