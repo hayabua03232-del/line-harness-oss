@@ -55,11 +55,17 @@ webhook.post('/webhook', async (c) => {
     }
   }
 
+  // Fail-closed: reject if no secret is configured (prevents empty-key HMAC bypass)
+  if (!channelSecret) {
+    console.error('SECURITY: No LINE channel secret configured — rejecting webhook');
+    return c.json({ status: 'error', error: 'Webhook secret not configured' }, 403);
+  }
+
   // Verify with resolved secret
   const valid = await verifySignature(channelSecret, rawBody, signature);
   if (!valid) {
     console.error('Invalid LINE signature');
-    return c.json({ status: 'ok' }, 200);
+    return c.json({ status: 'error', error: 'Invalid signature' }, 403);
   }
 
   const lineClient = new LineClient(channelAccessToken);
